@@ -1,5 +1,9 @@
 const User = require("../model/User");
 const asyncHandler = require("express-async-handler");
+const {
+    generateAccessToken,
+    generateRefreshToken,
+} = require("../middleware/jwt");
 
 const register = asyncHandler(async (req, res) => {
     const { name, email, phone, password } = req.body;
@@ -38,17 +42,42 @@ const login = asyncHandler(async (req, res) => {
         throw new Error("Password is wrong. Please enter again!");
     } else {
         const { password, role, ...rest } = response.toObject();
+        const accessToken = generateAccessToken(response._id, role);
+        const refreshToken = generateRefreshToken(response._id);
+
+        await User.findByIdAndUpdate(
+            response._id,
+            { refreshToken },
+            { new: true }
+        );
+
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
         return res.status(200).json({
             success: true,
             response: rest,
+            accessToken,
             message: "Login successfully! Welcome to!",
         });
     }
 });
 
-const getAllUsers = asyncHandler(async (req, res) => {});
+const getCurrent = asyncHandler(async (req, res) => {
+    const { _id } = req.user;
+    const response = await User.findById(_id).select(
+        "-role -password -refreshToken"
+    );
+    return res.status(200).json({
+        success: false,
+        response: response ? response : "User not found!",
+    });
+});
 
 module.exports = {
     register,
     login,
+    getCurrent,
 };

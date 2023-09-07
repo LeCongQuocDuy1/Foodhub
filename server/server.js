@@ -1,6 +1,7 @@
 const express = require("express");
 const dbConnect = require("./config/dbConnect");
 const initRoutes = require("./route/");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
 const app = express();
@@ -8,7 +9,7 @@ const port = process.env.PORT || 1234;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use(cookieParser());
 dbConnect();
 initRoutes(app);
 
